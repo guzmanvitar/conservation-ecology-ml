@@ -176,7 +176,7 @@ cython_debug/
 #OTHER
 .DS_Store
 .db
-data
+/data
 /models
 /coqui
 /tmp
