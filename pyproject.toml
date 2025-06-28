@@ -1,34 +1,34 @@
 [project]
 name = "conservation-ecology-ml"
 version = "0.1.0"
-description = "Predicting Missing Plant–Pollinator Interactions with Machine Learning"
-readme = "README.md"
-requires-python = "==3.10.13"
+description = "Machine learning for predicting missing plant-pollinator interactions"
+requires-python = ">=3.10.13"
 dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "scikit-learn>=1.3.0",
+    "xgboost>=1.7.0",
+    "shap>=0.42.0",
     "matplotlib>=3.7.0",
     "seaborn>=0.12.0",
-    "networkx>=3.0",
-    "shap>=0.42.0",
-    "xgboost>=1.7.0",
-    "imbalanced-learn>=0.10.0",
+    "networkx>=3.1",
+    "plotly>=5.15.0",
+    "joblib>=1.3.0",
+    "pyreadr>=0.5.3",
 ]
 
-
-[dependency-groups]
+[project.optional-dependencies]
 dev = [
-    "black>=25.1.0",
-    "flake8>=7.2.0",
-    "ipdb>=0.13.13",
-    "ipykernel>=6.29.5",
-    "isort>=6.0.1",
-    "jupyterlab>=4.4.0",
-    "pre-commit>=4.2.0",
-    "pydantic>=2.11.2",
-    "pytest>=8.3.5",
+    "pytest>=7.4.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.5.0",
 ]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
 
 [tool.isort]
 profile = "black"
@@ -38,3 +38,14 @@ line_length = 100
 [tool.flake8]
 max-line-length = 100
 extend-ignore = ["E203", "W503"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.29.5",
+]
