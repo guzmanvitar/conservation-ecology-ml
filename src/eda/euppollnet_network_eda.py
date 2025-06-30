@@ -689,7 +689,7 @@ def visualize_network(interactions_df, network_id, max_nodes=50):
 
 
 # Visualize a few representative networks
-# Select networks with most interactions and greatest number of pollinators × flowers
+# Select networks with most interactions, greatest number of pollinators × flowers, and biggest size × interactions
 network_with_most_interactions = network_stats.loc[
     network_stats["interaction_count"].idxmax(), "Network_id_full"
 ]
@@ -697,8 +697,20 @@ network_with_largest_size = network_stats.loc[
     (network_stats["plant_species"] * network_stats["pollinator_species"]).idxmax(),
     "Network_id_full",
 ]
+network_with_biggest_size_x_interactions = network_stats.loc[
+    (
+        network_stats["plant_species"]
+        * network_stats["pollinator_species"]
+        * network_stats["interaction_count"]
+    ).idxmax(),
+    "Network_id_full",
+]
 
-selected_networks_for_viz = [network_with_most_interactions, network_with_largest_size]
+selected_networks_for_viz = [
+    network_with_most_interactions,
+    network_with_largest_size,
+    network_with_biggest_size_x_interactions,
+]
 
 print(f"\nSelected networks for visualization:")
 print(f"1. Network with most interactions: {network_with_most_interactions}")
@@ -720,6 +732,27 @@ print(
 )
 print(
     f"   - Interactions: {network_stats.loc[network_stats['Network_id_full'] == network_with_largest_size, 'interaction_count'].iloc[0]:,}"
+)
+
+print(
+    f"\n3. Network with biggest size × interactions (pollinators × flowers × interactions): {network_with_biggest_size_x_interactions}"
+)
+size_x_interactions = (
+    network_stats.loc[
+        network_stats["Network_id_full"] == network_with_biggest_size_x_interactions,
+        "plant_species",
+    ].iloc[0]
+    * network_stats.loc[
+        network_stats["Network_id_full"] == network_with_biggest_size_x_interactions,
+        "pollinator_species",
+    ].iloc[0]
+    * network_stats.loc[
+        network_stats["Network_id_full"] == network_with_biggest_size_x_interactions,
+        "interaction_count",
+    ].iloc[0]
+)
+print(
+    f"   - Size × Interactions: {network_stats.loc[network_stats['Network_id_full'] == network_with_biggest_size_x_interactions, 'plant_species'].iloc[0]} × {network_stats.loc[network_stats['Network_id_full'] == network_with_biggest_size_x_interactions, 'pollinator_species'].iloc[0]} × {network_stats.loc[network_stats['Network_id_full'] == network_with_biggest_size_x_interactions, 'interaction_count'].iloc[0]:,} = {size_x_interactions:,}"
 )
 
 for network_id in selected_networks_for_viz:
