@@ -180,7 +180,9 @@ class InteractionFeatureEngineer:
                 # Temporal features
                 "year": row["year"],
                 "month": row["month"],
-                "season": self._get_season(row["month"]),
+                "season": self._encode_categorical(
+                    self._get_season(row["month"]), "season"
+                ),
                 # Geographic features
                 "latitude": row["latitude"],
                 "longitude": row["longitude"],
@@ -409,14 +411,14 @@ class InteractionFeatureEngineer:
                 "year": row["Year"],
                 "month": row["Month"],
                 "day": row["Day"],
-                "season": self._get_season(row["Month"]),
+                "season": self._encode_categorical(
+                    self._get_season(row["Month"]), "season"
+                ),
                 "is_spring": int(row["Month"] in [3, 4, 5]),
                 "is_summer": int(row["Month"] in [6, 7, 8]),
                 "is_autumn": int(row["Month"] in [9, 10, 11]),
                 "is_winter": int(row["Month"] in [12, 1, 2]),
-                "is_peak_season": int(
-                    row["Month"] in [5, 6, 7, 8]
-                ),  # Peak flowering season
+                "is_peak_season": int(row["Month"] in [5, 6, 7, 8]),
             }
 
             temporal_features.append(temporal)
@@ -467,6 +469,11 @@ class InteractionFeatureEngineer:
         all_features["plant_species"] = interactions_df["Plant_accepted_name"]
         all_features["pollinator_species"] = interactions_df["Pollinator_accepted_name"]
         all_features["network_id"] = interactions_df["Network_id_full"]
+
+        # Ensure all features are numeric (encode any remaining object columns)
+        for col in all_features.columns:
+            if all_features[col].dtype == "object":
+                all_features[col] = self._encode_categorical(all_features[col], col)
 
         logger.info(
             f"Created {len(all_features.columns)} features for {len(all_features)} interactions"
@@ -574,6 +581,95 @@ class InteractionFeatureEngineer:
         )
 
         return X, y
+
+    def generate_negative_examples(
+        self, interactions_df: pd.DataFrame, negative_ratio: float = 1.0
+    ) -> pd.DataFrame:
+        """
+        Generate negative examples (plant-pollinator pairs that don't interact).
+
+        Args:
+            interactions_df: DataFrame with positive interactions
+            negative_ratio: Ratio of negative to positive examples (default: 1.0)
+
+        Returns:
+            DataFrame with both positive and negative examples
+        """
+        logger.info("Generating negative examples for training...")
+
+        # Get unique plants and pollinators from the dataset
+        unique_plants = interactions_df["Plant_accepted_name"].unique()
+        unique_pollinators = interactions_df["Pollinator_accepted_name"].unique()
+
+        # Create all possible plant-pollinator combinations
+        logger.info(
+            f"Creating all possible combinations from {len(unique_plants)} plants and {len(unique_pollinators)} pollinators"
+        )
+
+        # Create positive interaction pairs
+        positive_pairs = set(
+            zip(
+                interactions_df["Plant_accepted_name"],
+                interactions_df["Pollinator_accepted_name"],
+            )
+        )
+
+        # Generate negative pairs (random sampling to avoid memory issues)
+        num_negative = int(len(interactions_df) * negative_ratio)
+        negative_pairs = set()
+
+        import random
+
+        random.seed(42)
+
+        attempts = 0
+        max_attempts = num_negative * 10  # Limit attempts to avoid infinite loop
+
+        while len(negative_pairs) < num_negative and attempts < max_attempts:
+            plant = random.choice(unique_plants)
+            pollinator = random.choice(unique_pollinators)
+            pair = (plant, pollinator)
+
+            if pair not in positive_pairs and pair not in negative_pairs:
+                negative_pairs.add(pair)
+
+            attempts += 1
+
+        logger.info(f"Generated {len(negative_pairs)} negative examples")
+
+        # Create negative examples DataFrame
+        negative_data = []
+        for plant, pollinator in negative_pairs:
+            # Get a random interaction row to use as template for metadata
+            template_row = interactions_df.iloc[0].copy()
+
+            # Create negative example
+            negative_row = {
+                "Plant_accepted_name": plant,
+                "Pollinator_accepted_name": pollinator,
+                "Interaction": 0,  # No interaction
+                "Network_id_full": template_row["Network_id_full"],
+                "Year": template_row["Year"],
+                "Month": template_row["Month"],
+                "Day": template_row["Day"],
+                "Country": template_row["Country"],
+                "Latitude": template_row["Latitude"],
+                "Longitude": template_row["Longitude"],
+                "Authors_habitat": template_row["Authors_habitat"],
+                "EuPPollNet_habitat": template_row["EuPPollNet_habitat"],
+            }
+            negative_data.append(negative_row)
+
+        negative_df = pd.DataFrame(negative_data)
+
+        # Combine positive and negative examples
+        combined_df = pd.concat([interactions_df, negative_df], ignore_index=True)
+
+        logger.info(
+            f"Combined dataset: {len(interactions_df)} positive + {len(negative_df)} negative = {len(combined_df)} total examples"
+        )
+
+        return combined_df
 
 
 def create_sample_features() -> pd.DataFrame:
