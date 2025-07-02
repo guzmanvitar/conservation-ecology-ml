@@ -180,3 +180,4 @@ cython_debug/
 /models
 /coqui
 /tmp
+/results
